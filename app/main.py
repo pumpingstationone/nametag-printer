@@ -127,7 +127,7 @@ def index():
         name = request.form["name"]
         print_name(name)
 
-        return "Nametag printed successfully!"
+        return render_template("printing.html")
 
     return render_template("index.html")
 
