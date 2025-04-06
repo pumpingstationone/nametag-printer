@@ -1,7 +1,10 @@
+from flask import Flask, request, render_template
 from PIL import Image, ImageDraw, ImageFont
 from brother_ql.conversion import convert
 from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send, discover
+
+app = Flask(__name__)
 
 
 def make_image(name: str) -> Image.Image:
@@ -105,13 +108,29 @@ def print(image: Image.Image):
     send(qr_data, printer_id)
 
 
-if __name__ == "__main__":
-    name = "Illya"
+def print_name(name: str) -> str:
     image = make_image(name)
 
+    # Show the image (debug)
     image.show()
 
     # Rotate the image 90 degrees
-    image = image.rotate(90, expand=True)
+    image.rotate(90, expand=True)
 
+    # Uncomment the line below to actually print
     # print(image)
+
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        name = request.form["name"]
+        print_name(name)
+
+        return "Nametag printed successfully!"
+
+    return render_template("index.html")
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
