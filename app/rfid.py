@@ -1,5 +1,5 @@
-from printer import print_name
 import keyboard
+from printer import print_name
 
 
 def lookup_rfid(rfid_tag):  # Placeholder
@@ -7,6 +7,9 @@ def lookup_rfid(rfid_tag):  # Placeholder
     rfid_to_name = {
         "1234567890": "John Doe",
         "0987654321": "Jane Smith",
+
+        # Actual RFID used for testing:
+        "0006765820": "Pumping Station: One",
     }
     return rfid_to_name.get(rfid_tag)
 
