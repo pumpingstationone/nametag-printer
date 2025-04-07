@@ -1,14 +1,40 @@
-from flask import Flask, request, render_template
+
 from PIL import Image, ImageDraw, ImageFont
 from brother_ql.conversion import convert
 from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send, discover
 
-app = Flask(__name__)
+
+def print_name(name: str) -> str:
+    image = make_image(name)
+
+    # Show the image (debug)
+    image.show()
+
+    # Rotate the image 90 degrees
+    image.rotate(90, expand=True)
+
+    # Uncomment the line below to actually print
+    # print_image(image)
+
+
+def print_image(image: Image.Image):
+    # Auto-discover the printer using the pyusb backend
+    printer_id = discover('pyusb')[0]['identifier']
+
+    # Discard broken serial from identifier
+    # https://github.com/pklaus/brother_ql_web/issues/10#issuecomment-994990935
+    printer_id = printer_id.split("_")[0]
+
+    # Need to create new qlr object for each print
+    qlr = BrotherQLRaster("QL-800")
+    qr_data = convert(qlr, [image], "60x86")
+    send(qr_data, printer_id)
 
 
 def make_image(name: str) -> Image.Image:
-    """Make a test image."""
+    """Generate a nametag image with the given name."""
+
     # Path to the font file
     font_path = "OpenSans-Regular.ttf"
 
@@ -94,43 +120,3 @@ def make_image(name: str) -> Image.Image:
     return image
 
 
-def print(image: Image.Image):
-    # Auto-discover the printer using the pyusb backend
-    printer_id = discover('pyusb')[0]['identifier']
-
-    # Discard broken serial from identifier
-    # https://github.com/pklaus/brother_ql_web/issues/10#issuecomment-994990935
-    printer_id = printer_id.split("_")[0]
-
-    # Need to create new qlr object for each print
-    qlr = BrotherQLRaster("QL-800")
-    qr_data = convert(qlr, [image], "60x86")
-    send(qr_data, printer_id)
-
-
-def print_name(name: str) -> str:
-    image = make_image(name)
-
-    # Show the image (debug)
-    image.show()
-
-    # Rotate the image 90 degrees
-    image.rotate(90, expand=True)
-
-    # Uncomment the line below to actually print
-    # print(image)
-
-
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        name = request.form["name"]
-        print_name(name)
-
-        return render_template("printing.html")
-
-    return render_template("index.html")
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
