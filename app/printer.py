@@ -1,5 +1,7 @@
-
 from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
+from wand.image import Image as WandImage  # Import Wand's Image class
+from wand.color import Color  # Import Color from wand
 from brother_ql.conversion import convert
 from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send, discover
@@ -50,6 +52,11 @@ def make_image(name: str) -> Image.Image:
     hello_text_y = 0
     my_name_is_text_y = 115
 
+    # Path to the logo file
+    logo_path = "ps1-logo-clean-white.svg"
+    logo_size = (100, 100)  # Desired size of the logo (width, height)
+    logo_inset = 50  # Inset from the edges
+
     # Create a blank white image
     image = Image.new("RGB", (image_width, image_height), "white")
     draw = ImageDraw.Draw(image)
@@ -88,6 +95,23 @@ def make_image(name: str) -> Image.Image:
     draw.rectangle([(0, 0), (image_width, top_bar_height)], fill="black")
     draw.rectangle([(0, image_height - bottom_bar_height), (image_width, image_height)], fill="black")
 
+    # Render the SVG logo into a rasterized image using Wand
+    with WandImage(filename=logo_path, background=Color('transparent'), resolution=300) as wand_image:
+        wand_image.format = 'png'  # Convert the SVG to PNG format
+        wand_image.resize(logo_size[0], logo_size[1])  # Resize the image to the desired size
+        logo_png_data = wand_image.make_blob('png')  # Get the PNG data as a binary blob
+        logo_image = Image.open(BytesIO(logo_png_data)).convert("RGBA")  # Convert to a Pillow image
+
+    # Add the logo to the top-left corner of the black bar
+    top_left_logo_x = logo_inset
+    top_left_logo_y = (top_bar_height - logo_size[1]) // 2  # Center vertically in the black bar
+    image.paste(logo_image, (top_left_logo_x, top_left_logo_y), logo_image)
+
+    # Add the logo to the top-right corner of the black bar
+    top_right_logo_x = image_width - logo_size[0] - logo_inset
+    top_right_logo_y = (top_bar_height - logo_size[1]) // 2  # Center vertically in the black bar
+    image.paste(logo_image, (top_right_logo_x, top_right_logo_y), logo_image)
+
     # Add "Hello" text
     hello_text = "Hello"
     hello_bbox = draw.textbbox((0, 0), hello_text, font=font_hello)
@@ -118,5 +142,3 @@ def make_image(name: str) -> Image.Image:
     draw.text((text_x, text_y), name, fill="black", font=font_name)
 
     return image
-
-
