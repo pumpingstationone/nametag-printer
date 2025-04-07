@@ -39,6 +39,7 @@ def make_image(name: str) -> Image.Image:
 
     # Path to the font file
     font_path = "OpenSans-Regular.ttf"
+    bold_font_path = "OpenSans-SemiBold.ttf"
 
     # Define image dimensions
     image_width = 954
@@ -68,7 +69,7 @@ def make_image(name: str) -> Image.Image:
 
     try:
         font_hello = ImageFont.truetype(font_path, font_hello_size)
-        font_my_name_is = ImageFont.truetype(font_path, font_my_name_is_size)
+        font_my_name_is = ImageFont.truetype(bold_font_path, font_my_name_is_size)
     except IOError:
         # Fallback to default fonts
         font_hello = ImageFont.load_default(font_hello_size)
