@@ -3,3 +3,6 @@ wand
 pillow
 keyboard
 brother_ql_next == 0.11.3
+waveshare-epaper
+gpiozero
+lgpio
