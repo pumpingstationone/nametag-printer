@@ -16,12 +16,6 @@ RUN apt-get update && apt-get install -y kbd
 # Wand for adding PS:1 logo to labels
 RUN apt-get update && apt-get install -y imagemagick
 
-# Interacting with e-paper
-RUN apt-get update && apt-get install -y \
-    python3-dev \
-    libpython3-dev \
-    build-essential
-
 # Remove unneccessary stuff
 RUN rm -rf /var/lib/apt/lists/*
 
@@ -41,11 +35,10 @@ COPY ./app /app
 # RUN apt-get update && apt-get install -y supervisor && rm -rf /var/lib/apt/lists/*
 
 # Copy the supervisord configuration file
-# COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Expose the Flask webserver port
 EXPOSE 5000
 
 # Start supervisord to run both processes
-# CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-CMD ["python", "qr.py"]
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
