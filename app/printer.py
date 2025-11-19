@@ -5,19 +5,31 @@ from wand.color import Color  # Import Color from wand
 from brother_ql.conversion import convert
 from brother_ql.raster import BrotherQLRaster
 from brother_ql.backends.helpers import send, discover
+import os
+
+# Get the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+asset_dir = os.path.join(script_dir, "assets")
+
+# Path to the font file
+font_path = os.path.join(asset_dir, "OpenSans-Regular.ttf")
+bold_font_path = os.path.join(asset_dir, "OpenSans-SemiBold.ttf")
+
+# Path to the logo file
+logo_path = os.path.join(asset_dir, "ps1-logo-clean-white.svg")
 
 
 def print_name(name: str) -> str:
     image = make_image(name)
 
     # Show the image (debug)
-    image.show()
+    # image.show()
 
     # Rotate the image 90 degrees
     image.rotate(90, expand=True)
 
     # Uncomment the line below to actually print
-    # print_image(image)
+    print_image(image)
 
 
 def print_image(image: Image.Image):
@@ -37,10 +49,6 @@ def print_image(image: Image.Image):
 def make_image(name: str) -> Image.Image:
     """Generate a nametag image with the given name."""
 
-    # Path to the font file
-    font_path = "OpenSans-Regular.ttf"
-    bold_font_path = "OpenSans-SemiBold.ttf"
-
     # Define image dimensions
     image_width = 954
     image_height = 672
@@ -53,9 +61,8 @@ def make_image(name: str) -> Image.Image:
     hello_text_y = 0
     my_name_is_text_y = 115
 
-    # Path to the logo file
-    logo_path = "ps1-logo-clean-white.svg"
-    logo_size = (100, 100)  # Desired size of the logo (width, height)
+    # Desired size of the logo (width, height)
+    logo_size = (100, 100)
     logo_inset = 50  # Inset from the edges
 
     # Create a blank white image
