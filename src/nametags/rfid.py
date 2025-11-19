@@ -1,5 +1,5 @@
 import keyboard
-from printer import print_name
+from .printer import print_name
 
 
 def lookup_rfid(rfid_tag):  # Placeholder

@@ -1,5 +1,6 @@
-from printer import print_name
+from .printer import print_name
 from flask import Flask, request, render_template
+from asgiref.wsgi import WsgiToAsgi
 
 app = Flask(__name__)
 
@@ -14,6 +15,9 @@ def index():
 
     return render_template("index.html")
 
+
+# Create ASGI app for compatibility with Uvicorn
+asgi_app = WsgiToAsgi(app)
 
 if __name__ == "__main__":
     app.run(debug=True)

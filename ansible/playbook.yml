@@ -1,83 +1,89 @@
----
-- hosts: localhost
-  gather_facts: false
-  tasks:
-    - name: Build Docker image locally
-      community.docker.docker_image:
-        name: nametags
-        tag: latest
-        build:
-          path: "{{ playbook_dir }}/../"
-          platform: "linux/arm64"
-        source: build
-      register: build_result
-
-    - name: Ensure dist directory exists
-      ansible.builtin.file:
-        path: "{{ playbook_dir }}/../dist"
-        state: directory
-        mode: '0755'
-
-    - name: Save Docker image to tarball
-      community.docker.docker_image:
-        name: nametags:latest
-        load_path: null
-        repository: nametags
-        tag: latest
-        push: false
-        source: local
-        archive_path: "{{ playbook_dir }}/../dist/nametags.tar"
-        state: present
-      when: build_result is changed or build_result is succeeded
-
 - hosts: nametags
   become: true
   tasks:
-    - name: Check if docker installed
-      shell: dpkg-query -W 'docker-ce'
-      ignore_errors: True
-      register: installed_docker
-
-    - name: Download Docker GPG key
-      ansible.builtin.get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /usr/share/keyrings/docker-archive-keyring.gpg
-        mode: '0644'
-
-    - name: Add Docker apt repository
-      ansible.builtin.apt_repository:
-        repo: "deb [arch=arm64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu bionic stable"
-        state: present
-      when: installed_docker is failed
-
-    - name: Install docker package
+    - name: Install system dependencies
       apt:
         name:
-        - docker-ce
-        # - python3-pip
+          - libusb-1.0-0-dev
+          - kbd
+          - imagemagick
+          - supervisor
         update_cache: yes
-        force_apt_get: yes
-      when: installed_docker is failed
 
-    - name: Copy Docker image tarball to Pi
+    - name: Install uv (official static binary for ARM64)
+      get_url:
+        url: https://github.com/astral-sh/uv/releases/download/0.7.15/uv-aarch64-unknown-linux-gnu.tar.gz
+        dest: /tmp/uv.tar.gz
+        mode: '0755'
+
+    - name: Extract uv binary
+      unarchive:
+        src: /tmp/uv.tar.gz
+        dest: /usr/local/bin/
+        remote_src: yes
+      args:
+        creates: /usr/local/bin/uv
+
+    - name: Rename uv binary
+      command: mv /usr/local/bin/uv-aarch64-unknown-linux-gnu/uv /usr/local/bin/uv
+      args:
+        removes: /usr/local/bin/uv-aarch64-unknown-linux-gnu/uv
+        creates: /usr/local/bin/uv
+
+    - name: Remove extracted uv directory
+      command: rm -r /usr/local/bin/uv-aarch64-unknown-linux-gnu
+      args:
+        removes: /usr/local/bin/uv-aarch64-unknown-linux-gnu/uv
+
+    - name: Ensure uv binary is executable
+      file:
+        path: /usr/local/bin/uv
+        mode: '0755'
+
+    - name: Ensure app directory exists
+      file:
+        path: /app
+        state: directory
+        mode: '0755'
+
+    - name: Copy app source code
+      ansible.builtin.synchronize:
+        src: ../src/
+        dest: /app/src/
+        rsync_opts:
+          - "--chmod=F755"
+          - "--exclude=__pycache__"
+          - "--exclude=*.pyc"
+          - "--exclude=*.pyo"
+
+    - name: Copy pyproject.toml and uv.lock
       copy:
-        src: "{{ playbook_dir }}/../dist/nametags.tar"
-        dest: /tmp/nametags.tar
+        src: "{{ item }}"
+        dest: /app/
+        mode: '0644'
+      loop:
+        - ../pyproject.toml
+        - ../uv.lock
+
+    - name: Install Python dependencies with uv
+      shell: |
+        cd /app && uv sync --no-dev
+      args:
+        creates: /app/.venv
+
+    - name: Copy supervisord.conf
+      copy:
+        src: ../supervisord.conf
+        dest: /etc/supervisor/conf.d/supervisord.conf
         mode: '0644'
 
-    - name: Load Docker image on Pi
-      community.docker.docker_image:
-        name: nametags:latest
-        load_path: /tmp/nametags.tar
-        source: load
-
-    - name: Run nametags container
-      community.docker.docker_container:
-        name: nametags
-        image: nametags:latest
+    - name: Ensure supervisor is started
+      service:
+        name: supervisor
         state: started
-        restart_policy: unless-stopped
-        published_ports:
-          - 5000:5000
-        env:
-          TZ: America/Chicago
+        enabled: yes
+
+    - name: Restart supervisor to reload config
+      service:
+        name: supervisor
+        state: restarted
