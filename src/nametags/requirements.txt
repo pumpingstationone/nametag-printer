@@ -1,5 +1,0 @@
-flask
-wand
-pillow
-keyboard
-brother_ql_next == 0.11.3
