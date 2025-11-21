@@ -1,7 +1,10 @@
 from asgiref.wsgi import WsgiToAsgi
 from flask import Flask, render_template, request
 
+from .logconf import setup_logging
 from .printer import print_name
+
+setup_logging()
 
 app = Flask(__name__)
 

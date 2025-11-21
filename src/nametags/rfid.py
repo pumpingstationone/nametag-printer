@@ -4,11 +4,12 @@ from urllib.parse import urlencode
 
 import keyboard
 
+from .logconf import setup_logging
 from .printer import print_name
 from .WaApi import WaApiClient
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+setup_logging()
+
 logger = logging.getLogger(__name__)
 
 # Raises KeyError if not set

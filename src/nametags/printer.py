@@ -8,6 +8,10 @@ from PIL import Image, ImageDraw, ImageFont
 from wand.color import Color
 from wand.image import Image as WandImage
 
+from .logconf import setup_logging
+
+setup_logging()
+
 # Get the directory of the current script
 script_dir = path.dirname(path.abspath(__file__))
 asset_dir = path.join(script_dir, "assets")
