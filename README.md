@@ -109,11 +109,24 @@ cd /app
 sudo uv run brother_ql \
     --printer usb://0x04f9:0x209b \
     --model QL-800 \
-    --backend pyusb status
+    --backend pyusb \
+    status
 ```
 
 
-## VSCode + Tooling
+## Development
+
+Use the [uv](https://docs.astral.sh/uv/getting-started/installation/#standalone-installer) project manager to work with this project. Sample commands:
+
+```bash
+# Create a virtual environment and install all dependencies
+uv sync
+
+# Start the webserver in development mode
+uv run python -m nametags.webserver
+```
+
+If you modify `pyproject.toml`, run `uv sync` and commit `uv.lock` changes.
 
 This repo contains some configs to support VSCode and common tooling:
 
