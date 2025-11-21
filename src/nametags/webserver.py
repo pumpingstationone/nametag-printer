@@ -1,6 +1,7 @@
-from .printer import print_name
-from flask import Flask, request, render_template
 from asgiref.wsgi import WsgiToAsgi
+from flask import Flask, render_template, request
+
+from .printer import print_name
 
 app = Flask(__name__)
 

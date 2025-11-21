@@ -4,8 +4,9 @@ on hardware (RFID reader and label printer). However, we can test the RFID
 lookup function against known RFID values.
 """
 from unittest import TestCase
-from nametags.rfid import lookup_rfid
 from unittest.mock import patch
+
+from nametags.rfid import lookup_rfid
 
 
 class TestRfidLookup(TestCase):

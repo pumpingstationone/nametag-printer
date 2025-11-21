@@ -1,11 +1,12 @@
-from PIL import Image, ImageDraw, ImageFont
+import os
 from io import BytesIO
-from wand.image import Image as WandImage  # Import Wand's Image class
-from wand.color import Color  # Import Color from wand
+
+from brother_ql.backends.helpers import discover, send
 from brother_ql.conversion import convert
 from brother_ql.raster import BrotherQLRaster
-from brother_ql.backends.helpers import send, discover
-import os
+from PIL import Image, ImageDraw, ImageFont
+from wand.color import Color
+from wand.image import Image as WandImage
 
 # Get the directory of the current script
 script_dir = os.path.dirname(os.path.abspath(__file__))

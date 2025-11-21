@@ -1,9 +1,11 @@
 import logging
 from os import environ
+from urllib.parse import urlencode
+
 import keyboard
+
 from .printer import print_name
 from .WaApi import WaApiClient
-from urllib.parse import urlencode
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

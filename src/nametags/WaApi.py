@@ -12,13 +12,13 @@ Example:
 
 __author__ = "dsmirnov@wildapricot.com"
 
+import base64
 import datetime
-import urllib.request
-import urllib.response
+import json
 import urllib.error
 import urllib.parse
-import json
-import base64
+import urllib.request
+import urllib.response
 
 
 class WaApiClient(object):
