@@ -29,6 +29,18 @@ for asset_path in (logo_path, font_path, bold_font_path):
         raise FileNotFoundError(f"Font file not found: {asset_path}")
 
 
+def get_printer_id():
+    """Auto-discover the printer and return its identifier."""
+    # Auto-discover the printer using the pyusb backend
+    printer_id = discover('pyusb')[0]['identifier']
+
+    # Discard broken serial from identifier
+    # https://github.com/pklaus/brother_ql_web/issues/10#issuecomment-994990935
+    printer_id = printer_id.split("_")[0]
+
+    return printer_id
+
+
 def print_name(name: str):
     """Print a nametag with the given name."""
     image = make_image(name)
@@ -37,16 +49,10 @@ def print_name(name: str):
 
 
 def print_image(image: Image.Image):
-    # Auto-discover the printer using the pyusb backend
-    printer_id = discover('pyusb')[0]['identifier']
-
-    # Discard broken serial from identifier
-    # https://github.com/pklaus/brother_ql_web/issues/10#issuecomment-994990935
-    printer_id = printer_id.split("_")[0]
-
-    # Need to create new qlr object for each print
+    """Print the given PIL image."""
     qlr = BrotherQLRaster("QL-800")
     qr_data = convert(qlr, [image], "60x86")
+    printer_id = get_printer_id()
     send(qr_data, printer_id)
 
 
