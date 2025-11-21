@@ -2,11 +2,23 @@
 
 ![Photo of the nametag printer](docs/nametag-printer.jpg)
 
+
+## Features
+
+1. Members can scan their RFID fobs to get nametags
+    1. Uses the "Preferred Name" field, if one is specified
+    2. Else, uses the "First Name" field only (for privacy)
+2. Custom nametag support via an integrated webserver
+
+![Screenshot of the custom nametag form](docs/webserver-form.png)
+
+
 ## Hardware
 
 1. [Brother QL800](https://www.brother-usa.com/products/ql800)
 2. [Raspberry Pi 4 Model B (1 GB)](https://wiki.geekworm.com/Raspberry_Pi_4_Model_B)
 3. [125Khz EM4100 USB RFID ID Card Reader](https://www.amazon.com/dp/B01MZYYDUV)
+
 
 ## Prerequisites
 
