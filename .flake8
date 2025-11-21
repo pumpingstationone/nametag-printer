@@ -1,2 +1,9 @@
 [flake8]
-ignore = E501
+exclude =
+    __pycache__
+    .venv
+ignore =
+    # E501: Line too long (try to avoid, though)
+    E501
+    # W503: Line break before binary operator (considered best practice now)
+    W503
