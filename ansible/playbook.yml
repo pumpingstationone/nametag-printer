@@ -66,6 +66,24 @@
         - ../pyproject.toml
         - ../uv.lock
 
+    - name: Check if .env exists and has required variables with non-empty values
+      shell: |
+        test -f "{{ playbook_dir }}/../.env" \
+        && grep -qE '^WA_CLIENT_ID=.+' "{{ playbook_dir }}/../.env" \
+        && grep -qE '^WA_CLIENT_SECRET=.+' "{{ playbook_dir }}/../.env" \
+        && grep -qE '^WA_API_KEY=.+' "{{ playbook_dir }}/../.env"
+      register: env_check
+      ignore_errors: true
+      changed_when: false
+      delegate_to: localhost
+
+    - name: Copy .env to /app/.env if valid
+      copy:
+        src: "{{ playbook_dir }}/../.env"
+        dest: /app/.env
+        mode: '0600'
+      when: env_check.rc == 0
+
     - name: Install Python dependencies with uv
       shell: |
         cd /app && uv sync --no-dev
