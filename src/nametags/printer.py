@@ -1,5 +1,5 @@
-import os
 from io import BytesIO
+from os import path
 
 from brother_ql.backends.helpers import discover, send
 from brother_ql.conversion import convert
@@ -9,27 +9,26 @@ from wand.color import Color
 from wand.image import Image as WandImage
 
 # Get the directory of the current script
-script_dir = os.path.dirname(os.path.abspath(__file__))
-asset_dir = os.path.join(script_dir, "assets")
+script_dir = path.dirname(path.abspath(__file__))
+asset_dir = path.join(script_dir, "assets")
 
 # Path to the font file
-font_path = os.path.join(asset_dir, "OpenSans-Regular.ttf")
-bold_font_path = os.path.join(asset_dir, "OpenSans-SemiBold.ttf")
+font_path = path.join(asset_dir, "OpenSans-Regular.ttf")
+bold_font_path = path.join(asset_dir, "OpenSans-SemiBold.ttf")
 
 # Path to the logo file
-logo_path = os.path.join(asset_dir, "ps1-logo-clean-white.svg")
+logo_path = path.join(asset_dir, "ps1-logo-clean-white.svg")
+
+# Make sure the asset files exist
+for asset_path in (logo_path, font_path, bold_font_path):
+    if not path.isfile(asset_path):
+        raise FileNotFoundError(f"Font file not found: {asset_path}")
 
 
-def print_name(name: str) -> str:
+def print_name(name: str):
+    """Print a nametag with the given name."""
     image = make_image(name)
-
-    # Show the image (debug)
-    # image.show()
-
-    # Rotate the image 90 degrees
     image.rotate(90, expand=True)
-
-    # Uncomment the line below to actually print
     print_image(image)
 
 
@@ -75,20 +74,13 @@ def make_image(name: str) -> Image.Image:
     font_hello_size = 100
     font_my_name_is_size = 50
 
-    try:
-        font_hello = ImageFont.truetype(font_path, font_hello_size)
-        font_my_name_is = ImageFont.truetype(bold_font_path, font_my_name_is_size)
-    except IOError:
-        # Fallback to default fonts
-        font_hello = ImageFont.load_default(font_hello_size)
-        font_my_name_is = ImageFont.load_default(font_my_name_is_size)
+    # Raises IOError if the font file is not found
+    font_hello = ImageFont.truetype(font_path, font_hello_size)
+    font_my_name_is = ImageFont.truetype(bold_font_path, font_my_name_is_size)
 
     # Dynamically adjust font size for the name
     while True:
-        try:
-            font_name = ImageFont.truetype(font_path, font_name_size)
-        except IOError:
-            font_name = ImageFont.load_default(font_name_size)
+        font_name = ImageFont.truetype(font_path, font_name_size)
 
         text_bbox = draw.textbbox((0, 0), name, font=font_name)
         text_width = text_bbox[2] - text_bbox[0]
