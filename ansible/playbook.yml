@@ -50,8 +50,9 @@
       ansible.builtin.synchronize:
         src: ../src/
         dest: /app/src/
+        delete: yes
         rsync_opts:
-          - "--chmod=F755"
+          - "--checksum"
           - "--exclude=__pycache__"
           - "--exclude=*.pyc"
           - "--exclude=*.pyo"
