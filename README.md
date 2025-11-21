@@ -1,6 +1,6 @@
 # PS:1 Nametag Printer
 
-
+![Photo of the nametag printer](docs/nametag-printer.jpg)
 
 ## Hardware
 
