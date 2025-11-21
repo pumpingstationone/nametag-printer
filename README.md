@@ -1,6 +1,6 @@
 # PS:1 Nametag Printer
 
-> A modified Brother QL-800
+
 
 ## Hardware
 
@@ -81,11 +81,11 @@ ansible-playbook playbook.yml
 
 This will setup the RPi from a fresh state. It's safe to run multiple times.
 
-> [!NOTE]
+> [!TIP]
 > You must run the playbook whenever you want to deploy code updates.
 
 
-# Printer CLI
+## Printer CLI
 
 This application includes [brother_ql_next](https://github.com/LunarEclipse363/brother_ql_next) as a requirement. While SSH'd into the RPi, you can use the CLI provided by that package to check on the printer. There's no need to do this, but it's interesting for debugging.
 
@@ -99,6 +99,15 @@ sudo uv run brother_ql \
     --model QL-800 \
     --backend pyusb status
 ```
+
+
+## VSCode + Tooling
+
+This repo contains some configs to support VSCode and common tooling:
+
+- [.vscode/settings.default.json](.vscode/settings.default.json) = [Workspace Default Settings](https://marketplace.visualstudio.com/items?itemName=dangmai.workspace-default-settings) for VSCode
+- [.editorconfig](.editorconfig) = [EditorConfig](https://editorconfig.org/) ([extension](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig))
+- [.flake8](.flake8) = [flake8](https://flake8.pycqa.org/en/latest/) ([extension](https://marketplace.visualstudio.com/items?itemName=ms-python.flake8))
 
 
 ## Acknowledgements
