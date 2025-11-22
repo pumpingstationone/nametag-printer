@@ -12,8 +12,6 @@ from .printer import get_printer_id
 
 setup_logging()
 
-logger = logging.getLogger(__name__)
-
 
 def keep_printer_awake():
     while True:
@@ -22,7 +20,6 @@ def keep_printer_awake():
             printer_identifier=get_printer_id(),
             backend_identifier='pyusb',
         )
-        logger.info("Status")
         time.sleep(300)  # Every 5 minutes
 
 
