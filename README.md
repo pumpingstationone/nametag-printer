@@ -65,9 +65,6 @@ When you run Ansible, it'll check if this `.env` file exists and is filled out. 
 # Always run Ansible commands from the `ansible` subdir
 $ cd ./ansible
 
-# Install requirements
-$ ansible-galaxy install -r requirements.yml
-
 # Test your connection
 $ ansible nametags -a "echo hi"
 nametags | CHANGED | rc=0 >>
