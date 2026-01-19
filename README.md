@@ -59,7 +59,7 @@ When you run Ansible, it'll check if this `.env` file exists and is filled out. 
 
 ## Ansible
 
-[Install Ansible](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html) using whatever method. Then, install this application's [requirements](https://docs.ansible.com/projects/ansible/latest/galaxy/user_guide.html):
+[Install Ansible](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html) using whatever method. Then, test if Ansible can connect to the printer:
 
 ```bash
 # Always run Ansible commands from the `ansible` subdir
@@ -71,7 +71,7 @@ nametags | CHANGED | rc=0 >>
 hi
 ```
 
-Our Ansible inventory assumes the following:
+Our [Ansible inventory](ansible/inventories/hosts) assumes the following:
 
 * Hostname: `nametags`
 * User: `pi`
