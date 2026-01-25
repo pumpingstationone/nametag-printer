@@ -41,9 +41,9 @@ def get_printer_id():
     return printer_id
 
 
-def print_name(name: str):
+def print_name(name: str, second_line: str | None):
     """Print a nametag with the given name."""
-    image = make_image(name)
+    image = make_image(name, second_line)
     image.rotate(90, expand=True)
     print_image(image)
 
@@ -56,8 +56,13 @@ def print_image(image: Image.Image):
     send(qr_data, printer_id)
 
 
-def make_image(name: str) -> Image.Image:
-    """Generate a nametag image with the given name."""
+def make_image(name: str, second_line: str | None) -> Image.Image:
+    """Generate a nametag image with the given name.
+
+    Args:
+        name: The name to display on the nametag
+        second_line: Optional second line of text
+    """
 
     # Define image dimensions
     image_width = 954
@@ -83,6 +88,7 @@ def make_image(name: str) -> Image.Image:
 
     # Load fonts
     font_name_size = 170
+    font_second_line_size = 120
     font_hello_size = 100
     font_my_name_is_size = 50
 
@@ -90,15 +96,37 @@ def make_image(name: str) -> Image.Image:
     font_hello = ImageFont.truetype(font_path, font_hello_size)
     font_my_name_is = ImageFont.truetype(bold_font_path, font_my_name_is_size)
 
+    # Trim second line, turn empty to None
+    if second_line is not None:
+        second_line = second_line.strip()
+        if len(second_line) == 0:
+            second_line = None
+
     # Dynamically adjust font size for the name
     while True:
         font_name = ImageFont.truetype(font_path, font_name_size)
 
-        (left, _, right, _) = font_name.getbbox(name)
+        (left, top, right, bottom) = font_name.getbbox(name)
         text_width = right - left
+        text_height = bottom - top
 
         # Leave a margin on both sides
         if text_width <= image_width - 100:
+            break
+
+        # Decrease font size if text is too wide
+        font_name_size -= 5
+
+    # Dynamically adjust font size for the second line
+    while second_line:
+        font_second_line = ImageFont.truetype(font_path, font_second_line_size)
+
+        (left, top, right, bottom) = font_second_line.getbbox(second_line)
+        second_line_width = right - left
+        second_line_height = bottom - top
+
+        # Leave a margin on both sides
+        if second_line_width <= image_width - 100:
             break
 
         # Decrease font size if text is too wide
@@ -138,13 +166,26 @@ def make_image(name: str) -> Image.Image:
     white_space_bottom = image_height - bottom_bar_height
     white_space_height = white_space_bottom - white_space_top
 
-    # Adjust for font ascent and descent
-    ascent, descent = font_name.getmetrics()
-    visual_text_height = ascent + descent
+    text_y = white_space_top + (white_space_height - text_height) // 2 + text_height
 
-    text_y = white_space_top + (white_space_height - visual_text_height) // 2
+    # Draw the second line if specified (moves name up)
+    if second_line is not None:
+        spacing = 40
+
+        combined_height = text_height + second_line_height + spacing
+        text_y = (
+            white_space_top + (white_space_height - combined_height) // 2
+            + text_height
+        )
+
+        draw.text((center_x, text_y + second_line_height + spacing),
+            second_line,
+            anchor="mb",
+            fill="black",
+            font=font_second_line,
+        )
 
     # Draw the name on the image
-    draw.text((center_x, text_y), name, anchor="ma", fill="black", font=font_name)
+    draw.text((center_x, text_y), name, anchor="mb", fill="black", font=font_name)
 
     return image

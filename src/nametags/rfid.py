@@ -91,7 +91,7 @@ def listen_for_rfid():
                     name = lookup_rfid(buffer)
                     if name:
                         logger.info(f"Matched Name: {name}")
-                        print_name(name)
+                        print_name(name, None)
                 buffer = ""  # Clear the buffer after processing
             elif char.isdigit():  # Append digits to the buffer
                 buffer += char
