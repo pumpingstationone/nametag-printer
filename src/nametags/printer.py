@@ -94,8 +94,8 @@ def make_image(name: str) -> Image.Image:
     while True:
         font_name = ImageFont.truetype(font_path, font_name_size)
 
-        text_bbox = draw.textbbox((0, 0), name, font=font_name)
-        text_width = text_bbox[2] - text_bbox[0]
+        (left, _, right, _) = font_name.getbbox(name)
+        text_width = right - left
 
         # Leave a margin on both sides
         if text_width <= image_width - 100:
