@@ -63,6 +63,8 @@ def make_image(name: str) -> Image.Image:
     image_width = 954
     image_height = 672
 
+    center_x = image_width // 2
+
     # Define black bar heights
     top_bar_height = 200
     bottom_bar_height = 100
@@ -125,17 +127,11 @@ def make_image(name: str) -> Image.Image:
 
     # Add "Hello" text
     hello_text = "Hello"
-    hello_bbox = draw.textbbox((0, 0), hello_text, font=font_hello)
-    hello_width = hello_bbox[2] - hello_bbox[0]
-    hello_x = (image_width - hello_width) // 2
-    draw.text((hello_x, hello_text_y), hello_text, fill="white", font=font_hello)
+    draw.text((center_x, hello_text_y), hello_text, anchor="ma", fill="white", font=font_hello)
 
     # Add "my name is" text
     my_name_is_text = "my name is"
-    my_name_is_bbox = draw.textbbox((0, 0), my_name_is_text, font=font_my_name_is)
-    my_name_is_width = my_name_is_bbox[2] - my_name_is_bbox[0]
-    my_name_is_x = (image_width - my_name_is_width) // 2
-    draw.text((my_name_is_x, my_name_is_text_y), my_name_is_text, fill="white", font=font_my_name_is)
+    draw.text((center_x, my_name_is_text_y), my_name_is_text, anchor="ma", fill="white", font=font_my_name_is)
 
     # Calculate text position to center the name within the white space
     white_space_top = top_bar_height
@@ -146,10 +142,9 @@ def make_image(name: str) -> Image.Image:
     ascent, descent = font_name.getmetrics()
     visual_text_height = ascent + descent
 
-    text_x = (image_width - text_width) // 2
     text_y = white_space_top + (white_space_height - visual_text_height) // 2
 
     # Draw the name on the image
-    draw.text((text_x, text_y), name, fill="black", font=font_name)
+    draw.text((center_x, text_y), name, anchor="ma", fill="black", font=font_name)
 
     return image
