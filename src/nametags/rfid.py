@@ -21,6 +21,7 @@ WA_API_KEY = environ["WA_API_KEY"]
 RFID_FIELD = "custom-9894255"
 FIRST_NAME_FIELD = "FirstName"
 PREFERRED_NAME_FIELD = "custom-17061153"
+SECOND_LINE_FIELD = "custom-17703390"
 
 # Globals to cache the API client and contacts URL
 # (API client will refresh the token as needed)
@@ -47,7 +48,7 @@ def get_contacts_url(api):
     return _contacts_url
 
 
-def lookup_rfid(rfid_tag: str) -> str | None:
+def lookup_rfid(rfid_tag: str) -> (str | None, str | None):
     """Lookup the name corresponding to the RFID tag."""
     api = get_api_client()
     contacts_url = get_contacts_url(api)
@@ -64,17 +65,20 @@ def lookup_rfid(rfid_tag: str) -> str | None:
 
     contact = response.Contacts[0]
 
-    preferredName = next(i for i in contact.FieldValues if i.SystemCode == PREFERRED_NAME_FIELD).Value
-    firstName = next(i for i in contact.FieldValues if i.SystemCode == FIRST_NAME_FIELD).Value
+    preferred_name = next(i for i in contact.FieldValues if i.SystemCode == PREFERRED_NAME_FIELD).Value
+    first_name = next(i for i in contact.FieldValues if i.SystemCode == FIRST_NAME_FIELD).Value
+    second_line = next(i for i in contact.FieldValues if i.SystemCode == SECOND_LINE_FIELD).Value
 
-    if preferredName:
-        return preferredName
+    first_line = None
+    if first_name:
+        first_line = first_name
+    if preferred_name:
+        first_line = preferred_name
 
-    if firstName:
-        return firstName
+    if not first_line:
+        logger.warning(f"No name on record for member with RFID tag {rfid_tag}.")
 
-    logger.warning(f"No name on record for member with RFID tag {rfid_tag}.")
-    return None
+    return (first_line, second_line)
 
 
 def listen_for_rfid():
@@ -88,10 +92,10 @@ def listen_for_rfid():
             if char == "enter":  # Linebreak indicates end of RFID input
                 if len(buffer) == 10 and buffer.isdigit():
                     logger.info(f"RFID Tag Detected: {buffer}")
-                    name = lookup_rfid(buffer)
-                    if name:
-                        logger.info(f"Matched Name: {name}")
-                        print_name(name, None)
+                    (first_line, second_line) = lookup_rfid(buffer)
+                    if first_line:
+                        logger.info(f"Matched Name: {first_line}")
+                        print_name(first_line, second_line)
                 buffer = ""  # Clear the buffer after processing
             elif char.isdigit():  # Append digits to the buffer
                 buffer += char
