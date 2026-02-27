@@ -1,8 +1,9 @@
 from io import BytesIO
-from os import path
+from os import environ, path
 
 from brother_ql.backends.helpers import discover, send
 from brother_ql.conversion import convert
+from brother_ql.labels import LabelsManager
 from brother_ql.raster import BrotherQLRaster
 from PIL import Image, ImageDraw, ImageFont
 from wand.color import Color
@@ -29,6 +30,9 @@ for asset_path in (logo_path, font_path, bold_font_path):
         raise FileNotFoundError(f"Font file not found: {asset_path}")
 
 
+LABEL_SIZE = environ.get("LABEL_SIZE", "62x100")
+
+
 def get_printer_id():
     """Auto-discover the printer and return its identifier."""
     # Auto-discover the printer using the pyusb backend
@@ -51,7 +55,7 @@ def print_name(name: str, second_line: str | None):
 def print_image(image: Image.Image):
     """Print the given PIL image."""
     qlr = BrotherQLRaster("QL-800")
-    qr_data = convert(qlr, [image], "60x86")
+    qr_data = convert(qlr, [image], LABEL_SIZE)
     printer_id = get_printer_id()
     send(qr_data, printer_id)
 
@@ -65,8 +69,19 @@ def make_image(name: str, second_line: str | None) -> Image.Image:
     """
 
     # Define image dimensions
-    image_width = 954
-    image_height = 672
+    label = next(
+        (
+            candidate
+            for candidate in LabelsManager().iter_elements()
+            if candidate.identifier == LABEL_SIZE
+        ),
+        None,
+    )
+    if label is None:
+        raise ValueError(
+            f"Invalid LABEL_SIZE '{LABEL_SIZE}'. Expected a known Brother QL label identifier."
+        )
+    image_height, image_width = label.dots_printable
 
     center_x = image_width // 2
 
