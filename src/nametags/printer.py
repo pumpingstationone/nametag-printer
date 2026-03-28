@@ -145,7 +145,7 @@ def make_image(name: str, second_line: str | None) -> Image.Image:
             break
 
         # Decrease font size if text is too wide
-        font_name_size -= 5
+        font_second_line_size -= 5
 
     # Add black bars at the top and bottom
     draw.rectangle([(0, 0), (image_width, top_bar_height)], fill="black")
