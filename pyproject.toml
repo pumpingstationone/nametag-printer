@@ -13,6 +13,9 @@ dependencies = [
     "wand>=0.6.13",
 ]
 
+[project.scripts]
+nametag = "nametags.cli:main"
+
 [dependency-groups]
 dev = [
     "flake8>=7.3.0",

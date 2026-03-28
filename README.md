@@ -118,9 +118,19 @@ Use the [uv](https://docs.astral.sh/uv/getting-started/installation/#standalone-
 ```bash
 # Create a virtual environment and install all dependencies
 uv sync
+source .venv/bin/activate
 
 # Start the webserver in development mode
-uv run python -m nametags.webserver
+python -m nametags.webserver
+
+# Test RFID lookup
+nametag lookup <tag_number>
+
+# Test nametag rendering
+nametag render "Grade Hopper" --second-line "she/her"
+
+# Test lookup and rendering at once
+nametag lookup 0001234567 | nametag render -
 ```
 
 If you modify `pyproject.toml`, run `uv sync` and commit `uv.lock` changes.
