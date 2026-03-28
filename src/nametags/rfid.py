@@ -61,7 +61,7 @@ def lookup_rfid(rfid_tag: str) -> (str | None, str | None):
 
     if not hasattr(response, "Contacts") or len(response.Contacts) != 1:
         logger.warning(f"RFID tag {rfid_tag} not found or multiple matches.")
-        return None
+        return (None, None)
 
     contact = response.Contacts[0]
 
