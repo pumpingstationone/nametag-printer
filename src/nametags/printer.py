@@ -1,4 +1,5 @@
 from io import BytesIO
+import unicodedata
 from os import environ, path
 
 from brother_ql.backends.helpers import discover, send
@@ -31,6 +32,177 @@ for asset_path in (logo_path, font_path, bold_font_path):
 
 
 LABEL_SIZE = environ.get("LABEL_SIZE", "62x100")
+MIN_FONT_SIZE = int(environ.get("MIN_FONT_SIZE", "30"))
+
+_FORMAT_CHARS = {"\u200c", "\u200d", "\ufe0e", "\ufe0f"}
+_FONT_CACHE: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
+_MISSING_CACHE: dict[tuple[str, int], tuple[tuple[int, int], bytes]] = {}
+_SUPPORT_CACHE: dict[tuple[str, int, str], bool] = {}
+
+
+def _font_chain(primary_font: str) -> list[str]:
+    configured = [
+        p.strip()
+        for p in environ.get("UNICODE_FONT_PATHS", "").split(path.pathsep)
+        if p.strip()
+    ]
+    common = [
+        path.join(asset_dir, "NotoSans-Regular.ttf"),
+        path.join(asset_dir, "NotoSansArabic-Regular.ttf"),
+        path.join(asset_dir, "NotoSansHebrew-Regular.ttf"),
+        path.join(asset_dir, "NotoSansEthiopic-Regular.ttf"),
+        path.join(asset_dir, "NotoSansCJK-Regular.ttc"),
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansHebrew-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansEthiopic-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+    ]
+
+    ordered: list[str] = []
+    for candidate in [primary_font, *configured, *common]:
+        if path.isfile(candidate) and candidate not in ordered:
+            ordered.append(candidate)
+    return ordered
+
+
+def _get_font(font_file: str, size: int) -> ImageFont.FreeTypeFont:
+    key = (font_file, size)
+    if key in _FONT_CACHE:
+        return _FONT_CACHE[key]
+
+    if hasattr(ImageFont, "Layout"):
+        try:
+            _FONT_CACHE[key] = ImageFont.truetype(
+                font_file,
+                size=size,
+                layout_engine=ImageFont.Layout.RAQM,
+            )
+            return _FONT_CACHE[key]
+        except Exception:
+            pass
+
+    _FONT_CACHE[key] = ImageFont.truetype(font_file, size=size)
+    return _FONT_CACHE[key]
+
+
+def _missing_fingerprint(font_file: str, size: int) -> tuple[tuple[int, int], bytes]:
+    key = (font_file, size)
+    if key in _MISSING_CACHE:
+        return _MISSING_CACHE[key]
+
+    mask = _get_font(font_file, size).getmask("\u0378", mode="L")
+    _MISSING_CACHE[key] = (mask.size, bytes(mask))
+    return _MISSING_CACHE[key]
+
+
+def _supports_char(font_file: str, size: int, ch: str) -> bool:
+    key = (font_file, size, ch)
+    if key in _SUPPORT_CACHE:
+        return _SUPPORT_CACHE[key]
+
+    if ch.isspace() or ch in _FORMAT_CHARS:
+        _SUPPORT_CACHE[key] = True
+        return True
+
+    if unicodedata.category(ch).startswith("M"):
+        _SUPPORT_CACHE[key] = True
+        return True
+
+    font = _get_font(font_file, size)
+    char_mask = font.getmask(ch, mode="L")
+    missing_size, missing_data = _missing_fingerprint(font_file, size)
+    supported = not (
+        char_mask.size == missing_size and bytes(char_mask) == missing_data
+    )
+
+    _SUPPORT_CACHE[key] = supported
+    return supported
+
+
+def _text_runs(text: str, font_files: list[str], size: int) -> list[tuple[str, str]]:
+    runs: list[tuple[str, str]] = []
+    run_text = ""
+    run_font: str | None = None
+
+    for ch in text:
+        chosen = run_font if (run_font and ch.isspace()) else None
+        if chosen is None:
+            for font_file in font_files:
+                if _supports_char(font_file, size, ch):
+                    chosen = font_file
+                    break
+
+        if chosen is None:
+            continue
+
+        if run_font != chosen and run_text:
+            runs.append((run_text, run_font))
+            run_text = ""
+
+        run_font = chosen
+        run_text += ch
+
+    if run_text and run_font is not None:
+        runs.append((run_text, run_font))
+
+    return runs
+
+
+def _measure_runs(
+    draw: ImageDraw.ImageDraw,
+    runs: list[tuple[str, str]],
+    size: int,
+) -> tuple[list[int], int, int]:
+    widths: list[int] = []
+    total_width = 0
+    line_height = 0
+
+    for run_text, run_font_file in runs:
+        run_font = _get_font(run_font_file, size)
+        left, top, right, bottom = draw.textbbox((0, 0), run_text, font=run_font)
+        width = max(0, right - left)
+        height = max(0, bottom - top)
+        widths.append(width)
+        total_width += width
+        line_height = max(line_height, height)
+
+    return widths, total_width, line_height
+
+
+def _fit_line(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    start_size: int,
+    max_width: int,
+    font_files: list[str],
+) -> tuple[int, list[tuple[str, str]], list[int], int, int]:
+    size = start_size
+    while True:
+        runs = _text_runs(text, font_files, size)
+        widths, total_width, line_height = _measure_runs(draw, runs, size)
+        if total_width <= max_width or size <= MIN_FONT_SIZE:
+            return size, runs, widths, total_width, line_height
+        size -= 5
+
+
+def _draw_centered_runs(
+    draw: ImageDraw.ImageDraw,
+    runs: list[tuple[str, str]],
+    widths: list[int],
+    center_x: int,
+    baseline_y: int,
+    size: int,
+    line_height: int,
+    fill: str,
+):
+    x = center_x - (sum(widths) // 2)
+    y = baseline_y - line_height
+
+    for (run_text, run_font_file), run_width in zip(runs, widths):
+        run_font = _get_font(run_font_file, size)
+        draw.text((x, y), run_text, anchor="lt", fill=fill, font=run_font)
+        x += run_width
 
 
 def get_printer_id():
@@ -67,6 +239,14 @@ def make_image(name: str, second_line: str | None) -> Image.Image:
         name: The name to display on the nametag
         second_line: Optional second line of text
     """
+
+    name = unicodedata.normalize("NFC", name)
+
+    # Trim second line, turn empty to None
+    if second_line is not None:
+        second_line = unicodedata.normalize("NFC", second_line).strip()
+        if len(second_line) == 0:
+            second_line = None
 
     # Define image dimensions
     label = next(
@@ -108,44 +288,35 @@ def make_image(name: str, second_line: str | None) -> Image.Image:
     font_my_name_is_size = 50
 
     # Raises IOError if the font file is not found
-    font_hello = ImageFont.truetype(font_path, font_hello_size)
-    font_my_name_is = ImageFont.truetype(bold_font_path, font_my_name_is_size)
+    font_hello = _get_font(font_path, font_hello_size)
+    font_my_name_is = _get_font(bold_font_path, font_my_name_is_size)
 
-    # Trim second line, turn empty to None
-    if second_line is not None:
-        second_line = second_line.strip()
-        if len(second_line) == 0:
-            second_line = None
+    text_fonts = _font_chain(font_path)
+    font_name_size, name_runs, name_widths, _, text_height = _fit_line(
+        draw,
+        name,
+        font_name_size,
+        image_width - 100,
+        text_fonts,
+    )
 
-    # Dynamically adjust font size for the name
-    while True:
-        font_name = ImageFont.truetype(font_path, font_name_size)
-
-        (left, top, right, bottom) = font_name.getbbox(name)
-        text_width = right - left
-        text_height = bottom - top
-
-        # Leave a margin on both sides
-        if text_width <= image_width - 100:
-            break
-
-        # Decrease font size if text is too wide
-        font_name_size -= 5
-
-    # Dynamically adjust font size for the second line
-    while second_line:
-        font_second_line = ImageFont.truetype(font_path, font_second_line_size)
-
-        (left, top, right, bottom) = font_second_line.getbbox(second_line)
-        second_line_width = right - left
-        second_line_height = bottom - top
-
-        # Leave a margin on both sides
-        if second_line_width <= image_width - 100:
-            break
-
-        # Decrease font size if text is too wide
-        font_second_line_size -= 5
+    second_line_runs: list[tuple[str, str]] = []
+    second_line_widths: list[int] = []
+    second_line_height = 0
+    if second_line:
+        (
+            font_second_line_size,
+            second_line_runs,
+            second_line_widths,
+            _,
+            second_line_height,
+        ) = _fit_line(
+            draw,
+            second_line,
+            font_second_line_size,
+            image_width - 100,
+            text_fonts,
+        )
 
     # Add black bars at the top and bottom
     draw.rectangle([(0, 0), (image_width, top_bar_height)], fill="black")
@@ -205,7 +376,7 @@ def make_image(name: str, second_line: str | None) -> Image.Image:
     text_y = white_space_top + (white_space_height - text_height) // 2 + text_height
 
     # Draw the second line if specified (moves name up)
-    if second_line is not None:
+    if second_line_runs:
         spacing = 40
 
         combined_height = text_height + second_line_height + spacing
@@ -213,15 +384,27 @@ def make_image(name: str, second_line: str | None) -> Image.Image:
             white_space_top + (white_space_height - combined_height) // 2 + text_height
         )
 
-        draw.text(
-            (center_x, text_y + second_line_height + spacing),
-            second_line,
-            anchor="mb",
-            fill="black",
-            font=font_second_line,
+        _draw_centered_runs(
+            draw,
+            second_line_runs,
+            second_line_widths,
+            center_x,
+            text_y + second_line_height + spacing,
+            font_second_line_size,
+            second_line_height,
+            "black",
         )
 
     # Draw the name on the image
-    draw.text((center_x, text_y), name, anchor="mb", fill="black", font=font_name)
+    _draw_centered_runs(
+        draw,
+        name_runs,
+        name_widths,
+        center_x,
+        text_y,
+        font_name_size,
+        text_height,
+        "black",
+    )
 
     return image
