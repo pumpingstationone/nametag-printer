@@ -54,6 +54,25 @@ def lookup(args):
         print(second_line)
 
 
+def nfc_read(args):
+    """Wait for a smartcard on a USB reader and print its UID."""
+    try:
+        from .nfc import read_uid
+    except Exception as e:
+        print(f"Error: Failed to import nfc module: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    print("Place a card on the reader...", file=sys.stderr)
+
+    try:
+        uid = read_uid(timeout=args.timeout)
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    print(uid)
+
+
 def main():
     """CLI for nametag printer."""
     parser = argparse.ArgumentParser(description="Nametag printer CLI")
@@ -88,12 +107,25 @@ def main():
     lookup_parser = subparsers.add_parser("lookup", help="Look up a name by RFID tag")
     lookup_parser.add_argument("rfid_tag", help="RFID tag number to look up")
 
+    nfc_parser = subparsers.add_parser(
+        "nfc-read", help="Read the UID of a smartcard from a USB reader"
+    )
+    nfc_parser.add_argument(
+        "--timeout",
+        "-t",
+        type=float,
+        default=None,
+        help="Seconds to wait for a card (default: wait indefinitely)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "render":
         render(args)
     elif args.command == "lookup":
         lookup(args)
+    elif args.command == "nfc-read":
+        nfc_read(args)
 
 
 if __name__ == "__main__":
